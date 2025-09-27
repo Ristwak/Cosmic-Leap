@@ -4,20 +4,22 @@ using UnityEngine;
 public class PlanetData : ScriptableObject
 {
     [Header("Identity")]
-    public string planetName = "New Planet";
-    [TextArea] public string shortDescription;
+    public string planetName = "New Planet";  // Name of the planet (used to match the scene name)
+    [TextArea] public string shortDescription; // Optional description
 
     [Header("Physics")]
     [Tooltip("Gravity multiplier relative to Earth (1 = Earth, 0.16 = Moon)")]
-    public float gravityScale = 1f; // multiply with 9.81
+    public float gravityScale = 1f; // Gravity scaling for the planet (relative to Earth's gravity)
 
     [Header("Environment")]
-    public GameObject landscapePrefab;   // prefab containing environment (cliff, ground, scenery)
-    public Material skyboxMaterial;      // optional skybox
-    public AudioClip ambientAudio;       // planet ambient sound
+    public Material skyboxMaterial;  // Optional skybox for the planet
+    public AudioClip ambientAudio;   // Optional ambient sound for the planet (planet description audio)
 
     [Header("Gameplay")]
-    public Transform playerSpawnPoint;   // optional: local transform inside landscapePrefab (can be null)
-    public Sprite uiIcon;                // show on UI button
-    public Color uiAccent = Color.white; // optional color for UI
+    public Transform playerSpawnPoint; // Optional spawn point for the player (if provided in the scene)
+    public Sprite uiIcon;             // Icon for the planet on the UI button
+    public Color uiAccent = Color.white; // Accent color for the planet's UI button
+
+    [Header("Scene Info")]
+    public string sceneName;         // The name of the scene to load for the planet (e.g., "Earth", "Mars")
 }

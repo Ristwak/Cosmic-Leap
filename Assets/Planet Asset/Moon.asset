@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f7028dedd85d4c48b1b8caa57f0da2b, type: 3}
   m_Name: Moon
   m_EditorClassIdentifier: 
-  planetName: New Planet
+  planetName: Moon
   shortDescription: 
   gravityScale: 0.165
   landscapePrefab: {fileID: 919132149155446097, guid: 6a4e6d8ca7cb5d8438ad7f8ca2fda194, type: 3}

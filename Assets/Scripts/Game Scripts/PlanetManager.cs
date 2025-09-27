@@ -1,6 +1,6 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Audio;
+using UnityEngine.SceneManagement;  // for scene management
 
 public class PlanetManager : MonoBehaviour
 {
@@ -10,15 +10,14 @@ public class PlanetManager : MonoBehaviour
     public PlanetData[] planets;
 
     [Header("Runtime")]
-    public Transform environmentParent; // where landscape prefabs will be instantiated
-    public GameObject xrRig; // assign your XR Rig root (so we can reposition it)
-    public AudioSource ambientAudioSource; // audio source used for ambient ambience
+    public GameObject xrRig;  // XR Rig for teleportation and gravity setup
+    public AudioSource ambientAudioSource; // AudioSource to play ambient sounds and planet descriptions
 
     [Header("Settings")]
     public float earthGravity = 9.81f;
     public float gravityLerpDuration = 0.5f; // smooth transition duration for Physics.gravity
 
-    GameObject currentEnvironmentInstance;
+    string currentSceneName;  // To track the current planet's scene
     Coroutine gravityCoroutine;
 
     void Awake()
@@ -27,76 +26,71 @@ public class PlanetManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
+    // Select planet by index (from the UI)
     public void SelectPlanetByIndex(int index)
     {
         if (index < 0 || index >= planets.Length) return;
         SelectPlanet(planets[index]);
     }
 
+    // Select planet and load its scene
     public void SelectPlanet(PlanetData planet)
     {
         if (planet == null) return;
 
-        // Load environment prefab
-        LoadEnvironment(planet);
+        // Load the appropriate scene for the selected planet
+        LoadPlanetScene(planet);
 
-        // Set gravity smoothly
+        // Set gravity smoothly for the selected planet
         Vector3 targetGravity = Vector3.down * earthGravity * planet.gravityScale;
         if (gravityCoroutine != null) StopCoroutine(gravityCoroutine);
         gravityCoroutine = StartCoroutine(LerpSetPhysicsGravity(targetGravity, gravityLerpDuration));
 
-        // Set skybox
+        // Set skybox and ambient audio for the planet
         if (planet.skyboxMaterial != null) RenderSettings.skybox = planet.skyboxMaterial;
-
-        // Play ambient audio
         if (ambientAudioSource != null)
         {
             ambientAudioSource.clip = planet.ambientAudio;
-            if (planet.ambientAudio != null) ambientAudioSource.Play();
-            else ambientAudioSource.Stop();
+            if (planet.ambientAudio != null) 
+            {
+                ambientAudioSource.Play();  // Play the planet-specific audio when scene is loaded
+            }
+            else 
+            {
+                ambientAudioSource.Stop();
+            }
         }
 
-        // Move XR Rig to spawn point (if provided in prefab)
-        if (xrRig != null && currentEnvironmentInstance != null)
+        // Move XR Rig to spawn point (if defined in the scene)
+        if (xrRig != null && planet.playerSpawnPoint != null)
         {
-            // if planet defines a playerSpawnPoint, use it
-            if (planet.playerSpawnPoint != null)
-            {
-                xrRig.transform.position = planet.playerSpawnPoint.position;
-                xrRig.transform.rotation = planet.playerSpawnPoint.rotation;
-            }
-            else
-            {
-                // fallback: try to find a child named "PlayerSpawn" in instantiated prefab
-                Transform spawn = currentEnvironmentInstance.transform.Find("PlayerSpawn");
-                if (spawn != null)
-                {
-                    xrRig.transform.position = spawn.position;
-                    xrRig.transform.rotation = spawn.rotation;
-                }
-                // else keep player where they are (hub -> they should be teleported manually)
-            }
+            xrRig.transform.position = planet.playerSpawnPoint.position;
+            xrRig.transform.rotation = planet.playerSpawnPoint.rotation;
         }
+
+        // Optional: Show a UI or audio cue to indicate the planet was selected and loading
     }
 
-    void LoadEnvironment(PlanetData planet)
+    // Load planet scene asynchronously
+    void LoadPlanetScene(PlanetData planet)
     {
-        // destroy previous instance
-        if (currentEnvironmentInstance != null) Destroy(currentEnvironmentInstance);
+        if (currentSceneName != planet.sceneName)
+        {
+            // Unload the current scene if one is loaded
+            if (!string.IsNullOrEmpty(currentSceneName))
+            {
+                SceneManager.UnloadSceneAsync(currentSceneName);
+            }
 
-        // instantiate new
-        if (planet.landscapePrefab != null && environmentParent != null)
-        {
-            currentEnvironmentInstance = Instantiate(planet.landscapePrefab, environmentParent);
-            currentEnvironmentInstance.name = planet.planetName + "_Environment";
-        }
-        else if (planet.landscapePrefab != null)
-        {
-            currentEnvironmentInstance = Instantiate(planet.landscapePrefab);
-            currentEnvironmentInstance.name = planet.planetName + "_Environment";
+            // Load the selected planet's scene asynchronously
+            SceneManager.LoadSceneAsync(planet.sceneName, LoadSceneMode.Additive);
+
+            // Update current scene name to the newly loaded scene
+            currentSceneName = planet.sceneName;
         }
     }
 
+    // Smoothly interpolate gravity over time
     IEnumerator LerpSetPhysicsGravity(Vector3 target, float duration)
     {
         Vector3 start = Physics.gravity;
